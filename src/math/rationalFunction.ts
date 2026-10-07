@@ -10,7 +10,9 @@ import {
   formatLinear, 
   formatDecimal,
   formatLinearEquation,
-  toFraction
+  toFraction,
+  simplifySquareRoot,
+  formatRadicalExpression
 } from './fraction';
 
 export function evaluateRational(x: number, coeffs: FunctionCoefficients): number | null {
@@ -80,7 +82,31 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
 
   const obliqueLineLatex = formatLinearEquation(a, p, nNum, nDen);
   const obliqueQuotientOnly = formatLinearEquation(a, p, nNum, nDen).replace('y = ', '');
-  const divisionStepsLatex = `\\frac{${numLatex}}{${denLatex}} = \\left( ${obliqueQuotientOnly} \\right) + \\frac{${remExact}}{${denLatex}}`;
+  
+  // Format clean remainder addition/subtraction
+  let remTermLatex = '';
+  const gcdHelper = (x: number, y: number): number => {
+    let u = Math.abs(x), v = Math.abs(y);
+    while (v) { const t = v; v = u % v; u = t; }
+    return u || 1;
+  };
+  const g = gcdHelper(remNum, remDen);
+  const sNum = remNum / g;
+  const sDen = remDen / g;
+  if (sDen === 1) {
+    if (sNum > 0) {
+      remTermLatex = `+ \\frac{${sNum}}{${denLatex}}`;
+    } else {
+      remTermLatex = `- \\frac{${Math.abs(sNum)}}{${denLatex}}`;
+    }
+  } else {
+    if (sNum > 0) {
+      remTermLatex = `+ \\frac{${sNum}}{${sDen}\\left(${denLatex}\\right)}`;
+    } else {
+      remTermLatex = `- \\frac{${Math.abs(sNum)}}{${sDen}\\left(${denLatex}\\right)}`;
+    }
+  }
+  const divisionStepsLatex = `\\frac{${numLatex}}{${denLatex}} = \\left( ${obliqueQuotientOnly} \\right) ${remTermLatex}`;
 
   // 4. Derivative Analysis
   // y' = [(2ax+b)(px+q) - p(ax^2+bx+c)] / (px+q)^2
@@ -91,51 +117,78 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
   const C = b * q - c * p;
   const delta = B * B - 4 * A * C;
 
-  const derivNumExpanded = `(2 \\cdot ${a}x + ${b})(${p}x + ${q}) - ${p}(${numLatex})`;
+  const uPrimeStr = formatLinear(2 * a, b);
+  const vStr = formatLinear(p, q);
+  const pFactorStr = p === 1 ? `(${numLatex})` : p === -1 ? `(-1)(${numLatex})` : `${p}(${numLatex})`;
+  const derivNumExpanded = `(${uPrimeStr})(${vStr}) - ${pFactorStr}`;
   const derivSimplified = formatQuadratic(A, B, C);
-  const derivFormulaLatex = `y' = \\frac{${derivNumExpanded}}{(${denLatex})^2} = \\frac{${derivSimplified}}{(${denLatex})^2}`;
+  const derivFormulaLatex = `y' = \\frac{${derivNumExpanded}}{\\left(${denLatex}\\right)^2} = \\frac{${derivSimplified}}{\\left(${denLatex}\\right)^2}`;
 
   let roots: number[] = [];
   let rootsLatex: string[] = [];
+  let rootsClean: string[] = [];
+
+  // Variables for exact radical computation of extrema
+  let root1Exact = { latex: '', clean: '' };
+  let root2Exact = { latex: '', clean: '' };
+  let y1Exact = { latex: '', clean: '' };
+  let y2Exact = { latex: '', clean: '' };
 
   if (delta > 1e-9) {
     const sqrtDelta = Math.sqrt(delta);
-    // x0Val is the midpoint between roots: x0 = -B / (2A) = -q/p
     const x0Val = -B / (2 * A);
     const halfWidth = sqrtDelta / (2 * Math.abs(A));
     const x1 = x0Val - halfWidth;
     const x2 = x0Val + halfWidth;
     roots = [x1, x2];
 
-    // Exact roots representation
-    const sqrtInt = Number.isInteger(sqrtDelta);
+    // Numerator u = -B, denominator v = 2A
+    // Make denominator v > 0 by multiplying top and bottom by sign(A)
     const sgnA = Math.sign(A);
-    const absTwoA = 2 * Math.abs(A);
-    const midNum = -B * sgnA;
+    const uX = -B * sgnA;
+    const vX = 2 * Math.abs(A);
 
-    if (sqrtInt) {
-      rootsLatex = [
-        formatFraction(midNum - sqrtDelta, absTwoA),
-        formatFraction(midNum + sqrtDelta, absTwoA),
-      ];
-    } else {
-      const deltaRound = Math.round(delta);
-      if (midNum === 0) {
-        rootsLatex = [
-          `-\\frac{\\sqrt{${deltaRound}}}{${absTwoA}}`,
-          `\\frac{\\sqrt{${deltaRound}}}{${absTwoA}}`,
-        ];
-      } else {
-        rootsLatex = [
-          `\\frac{${midNum} - \\sqrt{${deltaRound}}}{${absTwoA}}`,
-          `\\frac{${midNum} + \\sqrt{${deltaRound}}}{${absTwoA}}`,
-        ];
-      }
+    const { coeff: kX, radical: dX } = simplifySquareRoot(Math.round(delta));
+
+    // For x1 (smaller root): minus radical
+    root1Exact = formatRadicalExpression(uX, -1, kX, dX, vX);
+    // For x2 (larger root): plus radical
+    root2Exact = formatRadicalExpression(uX, 1, kX, dX, vX);
+
+    rootsLatex = [root1Exact.latex, root2Exact.latex];
+    rootsClean = [root1Exact.clean, root2Exact.clean];
+
+    // Compute exact y at extrema using high school formula:
+    // y = (2ax + b) / p
+    // Substituting x = (uX \pm kX*sqrt(dX)) / vX:
+    // y = [(2a*uX + b*vX) \pm (2a*kX)*sqrt(dX)] / (p*vX)
+    const uY = 2 * a * uX + b * vX;
+    const rawKY = 2 * a * kX;
+    const vY = p * vX;
+
+    // For root 1 (x1):
+    let sgnY1: 1 | -1 = -1;
+    let kY1 = rawKY;
+    if (kY1 < 0) {
+      kY1 = -kY1;
+      sgnY1 = 1;
     }
+    y1Exact = formatRadicalExpression(uY, sgnY1, kY1, dX, vY);
+
+    // For root 2 (x2):
+    let sgnY2: 1 | -1 = 1;
+    let kY2 = rawKY;
+    if (kY2 < 0) {
+      kY2 = -kY2;
+      sgnY2 = -1;
+    }
+    y2Exact = formatRadicalExpression(uY, sgnY2, kY2, dX, vY);
   } else if (Math.abs(delta) <= 1e-9) {
     const r = -B / (2 * A);
     roots = [r];
-    rootsLatex = [formatFraction(-B, 2 * A)];
+    const rFrac = formatFraction(-B, 2 * A);
+    rootsLatex = [rFrac];
+    rootsClean = [rFrac.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2')];
   }
 
   // 5. Extrema
@@ -154,23 +207,14 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
     const type1: 'max' | 'min' = A > 0 ? 'max' : 'min';
     const type2: 'max' | 'min' = A > 0 ? 'min' : 'max';
 
-    // Format exact rational value for y if roots are rational
-    const sqrtInt = Math.sqrt(delta) % 1 === 0;
-    let y1ExactStr = formatDecimal(y1);
-    let y2ExactStr = formatDecimal(y2);
-    if (sqrtInt) {
-      const f1 = toFraction(y1);
-      const f2 = toFraction(y2);
-      y1ExactStr = formatFraction(f1.num, f1.den);
-      y2ExactStr = formatFraction(f2.num, f2.den);
-    }
-
     extrema.push({
       x: x1,
       y: y1,
       type: type1,
-      xExact: rootsLatex[0] || formatDecimal(x1),
-      yExact: y1ExactStr,
+      xExact: root1Exact.latex || formatDecimal(x1),
+      yExact: y1Exact.latex || formatDecimal(y1),
+      xClean: root1Exact.clean || formatDecimal(x1),
+      yClean: y1Exact.clean || formatDecimal(y1),
       label: type1 === 'max' ? 'Điểm Cực đại A' : 'Điểm Cực tiểu A',
     });
 
@@ -178,8 +222,10 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
       x: x2,
       y: y2,
       type: type2,
-      xExact: rootsLatex[1] || formatDecimal(x2),
-      yExact: y2ExactStr,
+      xExact: root2Exact.latex || formatDecimal(x2),
+      yExact: y2Exact.latex || formatDecimal(y2),
+      xClean: root2Exact.clean || formatDecimal(x2),
+      yClean: y2Exact.clean || formatDecimal(y2),
       label: type2 === 'max' ? 'Điểm Cực đại B' : 'Điểm Cực tiểu B',
     });
   }
@@ -241,7 +287,7 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
     y: yI,
     exactX: x0Exact,
     exactY: yIExact,
-    latex: `I\\left(${x0Exact}; ${yIExact}\\right)`,
+    latex: `I\\left(${x0Exact};\\, ${yIExact}\\right)`,
     label: 'Tâm đối xứng I',
   };
 
@@ -249,13 +295,20 @@ export function analyzeRationalFunction(coeffs: FunctionCoefficients): RationalA
   const ox: Point2D[] = [];
   const deltaN = b * b - 4 * a * c;
   if (deltaN > 1e-9) {
+    const { coeff: kN, radical: dN } = simplifySquareRoot(Math.round(deltaN));
+    const sgnA = Math.sign(a);
+    const uN = -b * sgnA;
+    const vN = 2 * Math.abs(a);
+    const rootN1 = formatRadicalExpression(uN, -1, kN, dN, vN);
+    const rootN2 = formatRadicalExpression(uN, 1, kN, dN, vN);
     const ox1 = (-b - Math.sqrt(deltaN)) / (2 * a);
     const ox2 = (-b + Math.sqrt(deltaN)) / (2 * a);
-    ox.push({ x: ox1, y: 0, label: `Giao Ox (${formatDecimal(ox1)}; 0)` });
-    ox.push({ x: ox2, y: 0, label: `Giao Ox (${formatDecimal(ox2)}; 0)` });
+    ox.push({ x: ox1, y: 0, exactX: rootN1.latex, exactY: '0', label: `Giao Ox (${rootN1.clean}; 0)` });
+    ox.push({ x: ox2, y: 0, exactX: rootN2.latex, exactY: '0', label: `Giao Ox (${rootN2.clean}; 0)` });
   } else if (Math.abs(deltaN) <= 1e-9) {
     const ox1 = -b / (2 * a);
-    ox.push({ x: ox1, y: 0, label: `Giao Ox (${formatDecimal(ox1)}; 0)` });
+    const oxExact = formatFraction(-b, 2 * a);
+    ox.push({ x: ox1, y: 0, exactX: oxExact, exactY: '0', label: `Giao Ox (${oxExact}; 0)` });
   }
 
   let oy: Point2D | null = null;

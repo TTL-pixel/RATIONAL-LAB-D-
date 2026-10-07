@@ -137,7 +137,7 @@ export default function App() {
       />
 
       {/* Main Workspace Layout with Sidebar */}
-      <div className="flex-1 flex max-w-7xl w-full mx-auto relative z-10">
+      <div className="flex-1 flex max-w-[1440px] w-full mx-auto relative z-10">
         {/* Desktop Sidebar (Collapsible) */}
         <Sidebar activeTab={activeTab} onSelectTab={setActiveTab} />
 
@@ -192,37 +192,44 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Function Input Controls */}
-              <FunctionInput
-                coefficients={coefficients}
-                onChange={(c) => {
-                  setCoefficients(c);
-                  addXp(5);
-                }}
-                isValid={analysis.isValid}
-                validationError={analysis.validationError}
-              />
+              {/* 2-Column Responsive Workspace: Controls/Analysis on Left, Interactive Graph on Right */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Left Column: Function Input, Variation Table, 12-Step Analysis */}
+                <div className="order-1 lg:col-span-6 xl:col-span-7 space-y-6">
+                  {/* Function Input Controls */}
+                  <FunctionInput
+                    coefficients={coefficients}
+                    onChange={(c) => {
+                      setCoefficients(c);
+                      addXp(5);
+                    }}
+                    isValid={analysis.isValid}
+                    validationError={analysis.validationError}
+                  />
 
-              {/* Two-Zone Layout: Interactive Stage (Graph) + Layer Controls */}
-              <div className="space-y-4">
-                <GraphCanvas
-                  analysis={analysis}
-                  layers={layers}
-                  hiddenMode={hiddenMode}
-                  onRevealGraph={() => setHiddenMode(false)}
-                  probeX={probeX}
-                  onProbeXChange={setProbeX}
-                  showSymmetryProbe={true}
-                />
+                  {/* Variation Table */}
+                  <VariationTable analysis={analysis} />
 
-                <LayerControls layers={layers} onChange={setLayers} />
+                  {/* 12 Step Cards Analysis */}
+                  <StepByStepAnalysis analysis={analysis} />
+                </div>
+
+                {/* Right Column: Sticky Interactive Graph & Layer Controls */}
+                <div className="order-2 lg:col-span-6 xl:col-span-5 space-y-4 lg:sticky lg:top-18">
+                  <GraphCanvas
+                    analysis={analysis}
+                    layers={layers}
+                    hiddenMode={hiddenMode}
+                    onRevealGraph={() => setHiddenMode(false)}
+                    probeX={probeX}
+                    onProbeXChange={setProbeX}
+                    showSymmetryProbe={true}
+                    onNavigateToGraphTab={() => setActiveTab('graph')}
+                  />
+
+                  <LayerControls layers={layers} onChange={setLayers} />
+                </div>
               </div>
-
-              {/* Variation Table */}
-              <VariationTable analysis={analysis} />
-
-              {/* 12 Step Cards Analysis */}
-              <StepByStepAnalysis analysis={analysis} />
             </div>
           )}
 
@@ -268,19 +275,23 @@ export default function App() {
 
           {/* TAB 5: EXTREMA EXPLORER */}
           {activeTab === 'extrema' && (
-            <div className="space-y-6 animate-fadeIn">
-              <ExtremaExplorer
-                analysis={analysis}
-                probeX={probeX}
-                onProbeXChange={setProbeX}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fadeIn">
+              <div className="lg:col-span-6 xl:col-span-6 space-y-6">
+                <ExtremaExplorer
+                  analysis={analysis}
+                  probeX={probeX}
+                  onProbeXChange={setProbeX}
+                />
+              </div>
 
-              <GraphCanvas
-                analysis={analysis}
-                layers={layers}
-                probeX={probeX}
-                onProbeXChange={setProbeX}
-              />
+              <div className="lg:col-span-6 xl:col-span-6 lg:sticky lg:top-18 space-y-4">
+                <GraphCanvas
+                  analysis={analysis}
+                  layers={{ ...layers, localMax: true, localMin: true, extremaLine: true }}
+                  probeX={probeX}
+                  onProbeXChange={setProbeX}
+                />
+              </div>
             </div>
           )}
 
@@ -333,20 +344,24 @@ export default function App() {
 
           {/* TAB 8: SYMMETRY EXPLORER */}
           {activeTab === 'symmetry' && (
-            <div className="space-y-6 animate-fadeIn">
-              <SymmetryExplorer
-                analysis={analysis}
-                probeX={probeX}
-                onProbeXChange={setProbeX}
-              />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-fadeIn">
+              <div className="lg:col-span-6 xl:col-span-6 space-y-6">
+                <SymmetryExplorer
+                  analysis={analysis}
+                  probeX={probeX}
+                  onProbeXChange={setProbeX}
+                />
+              </div>
 
-              <GraphCanvas
-                analysis={analysis}
-                layers={{ ...layers, symmetryCenter: true, verticalAsymptote: true, obliqueAsymptote: true }}
-                probeX={probeX}
-                onProbeXChange={setProbeX}
-                showSymmetryProbe={true}
-              />
+              <div className="lg:col-span-6 xl:col-span-6 lg:sticky lg:top-18 space-y-4">
+                <GraphCanvas
+                  analysis={analysis}
+                  layers={{ ...layers, symmetryCenter: true, verticalAsymptote: true, obliqueAsymptote: true }}
+                  probeX={probeX}
+                  onProbeXChange={setProbeX}
+                  showSymmetryProbe={true}
+                />
+              </div>
             </div>
           )}
 

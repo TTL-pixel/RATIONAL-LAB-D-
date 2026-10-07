@@ -68,9 +68,9 @@ export const SymmetryExplorer: React.FC<SymmetryExplorerProps> = ({
 
             <div className="space-y-1">
               <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-serif flex items-center gap-3">
-                <span>● I</span>
+                <span>●</span>
                 <span className="text-pink-600 dark:text-pink-400">
-                  I({symmetryCenter.exactX}; {symmetryCenter.exactY})
+                  <MathView math={`I\\left(${symmetryCenter.exactX};\\, ${symmetryCenter.exactY}\\right)`} />
                 </span>
               </div>
               <div className="text-xs text-slate-500 dark:text-slate-400 font-mono">
@@ -85,11 +85,15 @@ export const SymmetryExplorer: React.FC<SymmetryExplorerProps> = ({
             <div className="pt-1 flex flex-wrap gap-2 text-xs">
               <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400">Hoành độ:</span>{' '}
-                <strong className="text-blue-600 dark:text-cyan-400 font-mono">xI = -q/p = {symmetryCenter.exactX}</strong>
+                <strong className="text-blue-600 dark:text-cyan-400 font-mono">
+                  <MathView math={`x_I = -\\frac{q}{p} = ${symmetryCenter.exactX}`} />
+                </strong>
               </div>
               <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800">
                 <span className="text-slate-500 dark:text-slate-400">Tung độ:</span>{' '}
-                <strong className="text-pink-600 dark:text-pink-400 font-mono">yI = m·xI + n = {symmetryCenter.exactY}</strong>
+                <strong className="text-pink-600 dark:text-pink-400 font-mono">
+                  <MathView math={`y_I = m \\cdot x_I + n = ${symmetryCenter.exactY}`} />
+                </strong>
               </div>
             </div>
           </div>
@@ -198,7 +202,7 @@ export const SymmetryExplorer: React.FC<SymmetryExplorerProps> = ({
             <span className="text-[10px] px-2 py-0.5 rounded bg-pink-500/15 text-pink-600 dark:text-pink-400 font-mono">Trung điểm PP'</span>
           </div>
           <div className="font-mono text-sm font-bold text-slate-900 dark:text-white">
-            I({symmetryCenter.exactX}; {symmetryCenter.exactY})
+            <MathView math={`I\\left(${symmetryCenter.exactX};\\, ${symmetryCenter.exactY}\\right)`} />
           </div>
           <div className="text-slate-500 dark:text-slate-400">
             Giao điểm tiệm cận: <MathView math={`${asymptotes.vertical.equation} \\cap ${asymptotes.oblique.equation}`} />

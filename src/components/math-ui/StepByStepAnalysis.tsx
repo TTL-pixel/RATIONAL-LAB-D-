@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { RationalAnalysisResult } from '../../types/math';
 import { MathView } from './MathView';
+import { VariationTable } from './VariationTable';
+import { formatQuadratic, formatLinear } from '../../math/fraction';
 import { 
   ChevronDown, 
   ChevronUp, 
@@ -93,7 +95,7 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
         <div className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           <div>
             Điều kiện để biểu thức mẫu số có nghĩa:{' '}
-            <MathView math={`${coefficients.p}x ${coefficients.q >= 0 ? '+' : '-'} ${Math.abs(coefficients.q)} \\neq 0 \\iff x \\neq ${excludedPointExact}`} />.
+            <MathView math={`${formatLinear(coefficients.p, coefficients.q)} \\neq 0 \\iff x \\neq ${excludedPointExact}`} />.
           </div>
           <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 font-semibold text-blue-600 dark:text-cyan-300">
             Tập xác định: <MathView math={domainLatex} />
@@ -120,7 +122,7 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
             <MathView math={derivative.formulaLatex} block />
           </div>
           <div>
-            Khai triển và rút gọn tử thức: <MathView math={`(${coefficients.a * coefficients.p})x^2 + (${2 * coefficients.a * coefficients.q})x + (${coefficients.b * coefficients.q - coefficients.c * coefficients.p})`} />.
+            Khai triển và rút gọn tử thức: <MathView math={`u'v - uv' = ${formatQuadratic(derivative.A, derivative.B, derivative.C)}`} />.
           </div>
         </div>
       ),
@@ -131,29 +133,35 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
       icon: Activity,
       title: "Nghiệm phương trình y' = 0",
       badge: 'Giải tử số',
-      preview: hasExtrema ? `2 nghiệm: x₁ ≈ ${derivative.roots[0].toFixed(2)}, x₂ ≈ ${derivative.roots[1].toFixed(2)}` : 'Vô nghiệm / Nghiệm kép',
+      preview: hasExtrema
+        ? `2 nghiệm: x₁ ≈ ${derivative.roots[0].toFixed(2)}, x₂ ≈ ${derivative.roots[1].toFixed(2)}`
+        : (Math.abs(derivative.delta) <= 1e-9 ? `Nghiệm kép: x = ${derivative.rootsLatex[0] || derivative.roots[0]?.toFixed(2)}` : 'Vô nghiệm (Δ < 0)'),
       content: (
         <div className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           <div>
             Phương trình <MathView math="y' = 0 \iff" /> Tử thức bằng 0:
           </div>
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-center font-mono">
-            <MathView math={`(${derivative.A})x^2 + (${derivative.B})x + (${derivative.C}) = 0`} />
+          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-center font-serif text-base font-bold text-slate-900 dark:text-white">
+            <MathView math={`${formatQuadratic(derivative.A, derivative.B, derivative.C)} = 0`} />
           </div>
           <div className="p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-900/60 text-xs">
-            Biệt thức <MathView math="\Delta = B^2 - 4AC" />: <MathView math={`\\Delta = (${derivative.B})^2 - 4(${derivative.A})(${derivative.C}) = ${derivative.delta.toFixed(2)}`} />.
+            Biệt thức <MathView math="\Delta = B^2 - 4AC" />: <MathView math={`\\Delta = (${derivative.B})^2 - 4(${derivative.A})(${derivative.C}) = ${Math.round(derivative.delta)}`} />.
           </div>
           {hasExtrema ? (
             <div className="text-emerald-600 dark:text-emerald-400 font-semibold space-y-1">
               Vì <MathView math="\Delta > 0" />, phương trình có 2 nghiệm phân biệt:
               <div className="font-mono text-xs pl-2 space-y-1">
-                <div>• <MathView math={`x_1 = ${derivative.rootsLatex[0] || derivative.roots[0].toFixed(2)}`} /></div>
-                <div>• <MathView math={`x_2 = ${derivative.rootsLatex[1] || derivative.roots[1].toFixed(2)}`} /></div>
+                <div>• <MathView math={`x_1 = ${derivative.rootsLatex[0] || derivative.roots[0].toFixed(2)} \\approx ${derivative.roots[0].toFixed(2)}`} /></div>
+                <div>• <MathView math={`x_2 = ${derivative.rootsLatex[1] || derivative.roots[1].toFixed(2)} \\approx ${derivative.roots[1].toFixed(2)}`} /></div>
               </div>
             </div>
           ) : (
             <div className="text-amber-600 dark:text-amber-400 font-semibold">
-              Vì <MathView math="\Delta \le 0" />, phương trình vô nghiệm hoặc có nghiệm kép. Tử số không đổi dấu.
+              {Math.abs(derivative.delta) <= 1e-9 ? (
+                <span>Vì <MathView math="\Delta = 0" />, phương trình có nghiệm kép <MathView math={`x = ${derivative.rootsLatex[0]}`} />. Tử số không đổi dấu.</span>
+              ) : (
+                <span>Vì <MathView math="\Delta < 0" />, phương trình vô nghiệm. Tử số cùng dấu với hệ số A trên toàn tập xác định.</span>
+              )}
             </div>
           )}
         </div>
@@ -165,15 +173,22 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
       icon: TrendingUp,
       title: "Xét dấu đạo hàm y'",
       badge: 'Quy tắc tam thức',
-      preview: derivative.A > 0 ? 'Trong trái ngoài cùng (A > 0)' : 'Trong trái ngoài cùng (A < 0)',
+      preview: derivative.A > 0 ? 'Trong trái (-), ngoài cùng (+) (A > 0)' : 'Trong trái (+), ngoài cùng (-) (A < 0)',
       content: (
         <div className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           <div>
             Dấu của <MathView math="y'" /> phụ thuộc hoàn toàn vào dấu của tam thức bậc hai ở tử số (vì mẫu số <MathView math="(px+q)^2 > 0" /> với mọi <MathView math={`x \\neq ${excludedPointExact}`} />).
           </div>
-          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1">
+          <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs space-y-1.5">
             <div>• Hệ số <MathView math={`A = a \\cdot p = ${derivative.A}`} /> ({derivative.A > 0 ? 'dương > 0' : 'âm < 0'}).</div>
-            <div>• Quy tắc: "Trong khoảng 2 nghiệm mang dấu trái với A, ngoài khoảng 2 nghiệm mang dấu cùng với A".</div>
+            {hasExtrema ? (
+              <>
+                <div>• <strong>Trong khoảng 2 nghiệm:</strong> <MathView math={`(${derivative.rootsLatex[0]};\\, ${derivative.rootsLatex[1]})`} />, đạo hàm <MathView math="y'" /> mang dấu trái với A: <strong className={derivative.A > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>{derivative.A > 0 ? 'y\' < 0 (Nghịch biến)' : 'y\' > 0 (Đồng biến)'}</strong>.</div>
+                <div>• <strong>Ngoài khoảng 2 nghiệm:</strong> <MathView math={`(-\\infty;\\, ${derivative.rootsLatex[0]})`} /> và <MathView math={`(${derivative.rootsLatex[1]};\\, +\\infty)`} />, đạo hàm <MathView math="y'" /> mang dấu cùng với A: <strong className={derivative.A > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{derivative.A > 0 ? 'y\' > 0 (Đồng biến)' : 'y\' < 0 (Nghịch biến)'}</strong>.</div>
+              </>
+            ) : (
+              <div>• Vì <MathView math="\Delta \le 0" />, đạo hàm <MathView math="y'" /> luôn mang dấu cùng với A: <strong className={derivative.A > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>{derivative.A > 0 ? 'y\' > 0 trên từng khoảng xác định' : 'y\' < 0 trên từng khoảng xác định'}</strong>.</div>
+            )}
           </div>
         </div>
       ),
@@ -212,7 +227,9 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
       icon: Maximize2,
       title: 'Điểm cực đại & Cực tiểu',
       badge: hasExtrema ? '2 Điểm cực trị' : 'Không có cực trị',
-      preview: hasExtrema ? `CĐ(${extrema[0]?.x.toFixed(1)}; ${extrema[0]?.y.toFixed(1)}), CT(${extrema[1]?.x.toFixed(1)}; ${extrema[1]?.y.toFixed(1)})` : 'Không có cực trị',
+      preview: hasExtrema
+        ? `${extrema[0]?.type === 'max' ? 'CĐ' : 'CT'}(${extrema[0]?.x.toFixed(1)}; ${extrema[0]?.y.toFixed(1)}), ${extrema[1]?.type === 'max' ? 'CĐ' : 'CT'}(${extrema[1]?.x.toFixed(1)}; ${extrema[1]?.y.toFixed(1)})`
+        : 'Không có cực trị',
       content: (
         <div className="space-y-3 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           {hasExtrema ? (
@@ -220,20 +237,23 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
               {extrema.map((ex, idx) => (
                 <div
                   key={idx}
-                  className={`p-3 rounded-xl border ${
+                  className={`p-3.5 rounded-xl border ${
                     ex.type === 'max'
                       ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-500/40 text-amber-800 dark:text-amber-200'
                       : 'bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200 dark:border-indigo-500/40 text-indigo-800 dark:text-indigo-200'
                   }`}
                 >
-                  <div className="font-bold flex items-center justify-between mb-1">
+                  <div className="font-bold flex items-center justify-between mb-2">
                     <span>{ex.label}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider bg-white/60 dark:bg-slate-900/60">
+                    <span className="text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider bg-white/70 dark:bg-slate-900/70 border border-current/20">
                       {ex.type === 'max' ? 'CỰC ĐẠI' : 'CỰC TIỂU'}
                     </span>
                   </div>
-                  <div>Hoành độ: <MathView math={`x = ${ex.xExact}`} /> (≈ {ex.x.toFixed(2)})</div>
-                  <div>Tung độ: <MathView math={`y = ${ex.yExact}`} /> (≈ {ex.y.toFixed(2)})</div>
+                  <div className="space-y-1 font-mono">
+                    <div>• Hoành độ: <MathView math={`x = ${ex.xExact}`} /> <span className="text-slate-400 font-sans">(≈ {ex.x.toFixed(2)})</span></div>
+                    <div>• Tung độ: <MathView math={`y = ${ex.yExact}`} /> <span className="text-slate-400 font-sans">(≈ {ex.y.toFixed(2)})</span></div>
+                    <div>• Tọa độ điểm: <MathView math={`${ex.type === 'max' ? 'A' : 'B'}\\left(${ex.xExact};\\, ${ex.yExact}\\right)`} /></div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -260,22 +280,22 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
       icon: Sparkles,
       title: 'Giới hạn tại vô cực & Giới hạn một bên',
       badge: 'Hành vi tiệm cận',
-      preview: `x → ±∞: ${limits.posInf}`,
+      preview: `x → +∞: ${limits.posInf}, x → -∞: ${limits.negInf}`,
       content: (
         <div className="space-y-2 text-xs sm:text-sm text-slate-600 dark:text-slate-300">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
             <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
               <span className="font-semibold text-slate-700 dark:text-slate-300">Tại vô cực:</span>
-              <div className="mt-1 space-y-0.5 font-mono">
-                <div>• <MathView math={`\\lim_{x \\to +\\infty} y = ${limits.posInf}`} /></div>
-                <div>• <MathView math={`\\lim_{x \\to -\\infty} y = ${limits.negInf}`} /></div>
+              <div className="mt-1 space-y-1 font-mono">
+                <div>• <MathView math={`\\lim\\limits_{x \\to +\\infty} y = ${limits.posInf}`} /></div>
+                <div>• <MathView math={`\\lim\\limits_{x \\to -\\infty} y = ${limits.negInf}`} /></div>
               </div>
             </div>
             <div className="p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
               <span className="font-semibold text-slate-700 dark:text-slate-300">Một bên điểm gián đoạn ({excludedPointExact}):</span>
-              <div className="mt-1 space-y-0.5 font-mono">
-                <div>• <MathView math={`\\lim_{x \\to ${excludedPointExact}^+} y = ${limits.vertRight}`} /></div>
-                <div>• <MathView math={`\\lim_{x \\to ${excludedPointExact}^-} y = ${limits.vertLeft}`} /></div>
+              <div className="mt-1 space-y-1 font-mono">
+                <div>• <MathView math={`\\lim\\limits_{x \\to \\left(${excludedPointExact}\\right)^+} y = ${limits.vertRight}`} /></div>
+                <div>• <MathView math={`\\lim\\limits_{x \\to \\left(${excludedPointExact}\\right)^-} y = ${limits.vertLeft}`} /></div>
               </div>
             </div>
           </div>
@@ -302,10 +322,10 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
             <strong>Tiệm cận xiên:</strong> <MathView math={asymptotes.oblique.equation} />
             <div className="mt-1 text-xs">
               Thực hiện phép chia đa thức tử cho mẫu:
-              <div className="p-2 bg-white/70 dark:bg-slate-950/80 rounded border border-sky-200 dark:border-sky-900/60 my-1 text-center font-serif">
+              <div className="p-2 bg-white/70 dark:bg-slate-950/80 rounded border border-sky-200 dark:border-sky-900/60 my-1 text-center font-serif text-sm">
                 <MathView math={asymptotes.oblique.divisionStepsLatex} />
               </div>
-              Khi <MathView math="x \to \pm\infty" />, phần dư tiến về 0, đồ thị ép sát đường thẳng <MathView math={asymptotes.oblique.equation} />.
+              Khi <MathView math="x \\to \\pm\\infty" />, phần dư tiến về 0, đồ thị ép sát đường thẳng <MathView math={asymptotes.oblique.equation} />.
             </div>
           </div>
         </div>
@@ -347,7 +367,7 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
               <div className="mt-1">
                 {intercepts.oy ? (
                   <span className="font-mono text-emerald-600 dark:text-emerald-400">
-                    <MathView math={`(0; ${intercepts.oy.exactY || intercepts.oy.y.toFixed(2)})`} />
+                    <MathView math={`\\left(0;\\, ${intercepts.oy.exactY || intercepts.oy.y.toFixed(2)}\\right)`} />
                   </span>
                 ) : (
                   <span className="text-slate-400">Không cắt trục Oy (x = 0 không thuộc TXĐ).</span>
@@ -358,9 +378,9 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
               <span className="font-semibold text-slate-700 dark:text-slate-300">Giao trục Ox (y = 0):</span>
               <div className="mt-1">
                 {intercepts.ox.length > 0 ? (
-                  <div className="space-y-0.5 font-mono text-emerald-600 dark:text-emerald-400">
+                  <div className="space-y-1 font-mono text-emerald-600 dark:text-emerald-400">
                     {intercepts.ox.map((pt, i) => (
-                      <div key={i}>• <MathView math={`(${pt.exactX || pt.x.toFixed(2)}; 0)`} /></div>
+                      <div key={i}>• <MathView math={`\\left(${pt.exactX || pt.x.toFixed(2)};\\, 0\\right)`} /></div>
                     ))}
                   </div>
                 ) : (
@@ -380,10 +400,8 @@ export const StepByStepAnalysis: React.FC<StepByStepAnalysisProps> = ({ analysis
       badge: 'Tổng hợp dấu & chiều',
       preview: 'Đầy đủ hàng x, y\', y và tiệm cận',
       content: (
-        <div className="text-xs sm:text-sm text-slate-600 dark:text-slate-300">
-          <p className="mb-2">
-            Xem bảng biến thiên trực quan đầy đủ với ký hiệu chuẩn 2 gạch song song (<MathView math="||" />) và các mũi tên chiều biến thiên tại tab <strong>"Bảng biến thiên"</strong>.
-          </p>
+        <div className="space-y-3 pt-1">
+          <VariationTable analysis={analysis} compact />
         </div>
       ),
     },

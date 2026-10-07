@@ -108,12 +108,49 @@ export const ExtremaExplorer: React.FC<ExtremaExplorerProps> = ({
                     </span>
                   </div>
 
-                  <div className="flex items-baseline justify-between py-1">
-                    <div className="font-serif text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
-                      {isMax ? 'A' : 'B'}({ex.xExact}; {ex.yExact})
+                  <div className="py-2 space-y-2.5">
+                    {/* Exact point formula */}
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                      <div className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mb-1 font-sans">
+                        Tọa độ chính xác dạng giải tích:
+                      </div>
+                      <div className="text-base sm:text-lg font-bold text-slate-900 dark:text-white overflow-x-auto py-0.5">
+                        <MathView math={`${isMax ? 'A' : 'B'}\\left(${ex.xExact};\\, ${ex.yExact}\\right)`} />
+                      </div>
                     </div>
-                    <div className="text-xs font-mono text-slate-500 dark:text-slate-400">
-                      y'({formatDecimal(ex.x, 2)}) = 0
+
+                    {/* Numeric breakdown & approximations */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+                      <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                        <div className="text-[10px] text-slate-400 font-sans font-medium">Hoành độ cực trị (x):</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                          {ex.xClean || formatDecimal(ex.x, 3)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Số thập phân: {formatDecimal(ex.x, 4)}
+                        </div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/70 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+                        <div className="text-[10px] text-slate-400 font-sans font-medium">Tung độ cực trị (y):</div>
+                        <div className="font-bold text-slate-900 dark:text-slate-100 text-xs">
+                          {ex.yClean || formatDecimal(ex.y, 3)}
+                        </div>
+                        <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                          Số thập phân: {formatDecimal(ex.y, 4)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs font-mono text-slate-600 dark:text-slate-400 pt-1">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[11px] text-slate-400 font-sans">Điểm dừng:</span>
+                        <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-bold text-slate-800 dark:text-slate-200">
+                          y'({formatDecimal(ex.x, 2)}) = 0
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-sans font-semibold">
+                        {isMax ? 'Đổi dấu: (+) sang (-)' : 'Đổi dấu: (-) sang (+)'}
+                      </div>
                     </div>
                   </div>
 
@@ -177,7 +214,7 @@ export const ExtremaExplorer: React.FC<ExtremaExplorerProps> = ({
                 onClick={() => onProbeXChange(ex.x)}
                 className="px-2.5 py-1 rounded-lg bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-xs font-mono transition-colors cursor-pointer"
               >
-                {ex.type === 'max' ? 'Cực đại' : 'Cực tiểu'} x = {formatDecimal(ex.x, 2)}
+                {ex.type === 'max' ? 'Cực đại' : 'Cực tiểu'} x = {ex.xClean || formatDecimal(ex.x, 2)}
               </button>
             ))}
           </div>
@@ -191,23 +228,23 @@ export const ExtremaExplorer: React.FC<ExtremaExplorerProps> = ({
           <span className={statusColor}>{statusText}</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="text-slate-500 dark:text-slate-400 mb-0.5 flex items-center justify-between">
               <span>Điểm khảo sát P</span>
               <span className="text-[10px] text-amber-600 dark:text-yellow-400 font-sans">Trên đồ thị</span>
             </div>
-            <div className="font-mono text-sm font-bold text-slate-900 dark:text-yellow-300">
+            <div className="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-yellow-300 break-words">
               {yVal !== null ? `P(${formatDecimal(probeX, 2)}; ${formatDecimal(yVal, 2)})` : 'Không xác định'}
             </div>
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="text-slate-500 dark:text-slate-400 mb-0.5 flex items-center justify-between">
               <span>Điểm đối xứng P'</span>
               <span className="text-[10px] text-amber-600 dark:text-amber-400 font-sans">Đối xứng qua I</span>
             </div>
-            <div className="font-mono text-sm font-bold text-slate-900 dark:text-amber-300">
+            <div className="font-mono text-xs sm:text-sm font-bold text-slate-900 dark:text-amber-300 break-words">
               {(() => {
                 if (yVal === null) return 'Không xác định';
                 const pPrimeX = 2 * analysis.symmetryCenter.x - probeX;
@@ -217,16 +254,16 @@ export const ExtremaExplorer: React.FC<ExtremaExplorerProps> = ({
             </div>
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="text-slate-500 dark:text-slate-400 mb-0.5">Giá trị đạo hàm y'(x)</div>
-            <div className={`font-mono text-sm font-bold ${statusColor}`}>
+            <div className={`font-mono text-xs sm:text-sm font-bold break-words ${statusColor}`}>
               {slopeVal !== null ? formatDecimal(slopeVal, 3) : 'Không xác định'}
             </div>
           </div>
 
-          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs">
             <div className="text-slate-500 dark:text-slate-400 mb-0.5">Trạng thái đạo hàm</div>
-            <div className="font-mono text-xs font-bold">
+            <div className="font-mono text-xs font-bold break-words">
               {slopeVal !== null ? (
                 Math.abs(slopeVal) < 0.05 ? (
                   <span className="text-amber-600 dark:text-amber-400">y' = 0 (Điểm dừng)</span>

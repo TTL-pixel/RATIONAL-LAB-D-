@@ -483,97 +483,97 @@ export const PredictionChallenge: React.FC<PredictionChallengeProps> = ({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <button
           onClick={() => handleSwitchChallenge('shape')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'shape'
-              ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-cyan-50 dark:bg-cyan-500/15 border-cyan-300 dark:border-cyan-500/40 text-cyan-700 dark:text-cyan-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Compass className="w-4 h-4 text-cyan-400 shrink-0" />
+          <Compass className="w-4 h-4 text-cyan-600 dark:text-cyan-400 shrink-0" />
           <span className="truncate">1. Dáng điệu đồ thị</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('extrema_paradox')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'extrema_paradox'
-              ? 'bg-amber-500/15 border-amber-500/40 text-amber-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-amber-50 dark:bg-amber-500/15 border-amber-300 dark:border-amber-500/40 text-amber-700 dark:text-amber-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <TrendingUp className="w-4 h-4 text-amber-400 shrink-0" />
+          <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
           <span className="truncate">2. So sánh yCĐ &amp; yCT</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('quadrant')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'quadrant'
-              ? 'bg-pink-500/15 border-pink-500/40 text-pink-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-pink-50 dark:bg-pink-500/15 border-pink-300 dark:border-pink-500/40 text-pink-700 dark:text-pink-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Target className="w-4 h-4 text-pink-400 shrink-0" />
+          <Target className="w-4 h-4 text-pink-600 dark:text-pink-400 shrink-0" />
           <span className="truncate">3. Vị trí Tâm đối xứng</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('intercepts')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'intercepts'
-              ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-emerald-50 dark:bg-emerald-500/15 border-emerald-300 dark:border-emerald-500/40 text-emerald-700 dark:text-emerald-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Crosshair className="w-4 h-4 text-emerald-400 shrink-0" />
+          <Crosshair className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
           <span className="truncate">4. Giao điểm với các trục</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('monotonicity')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'monotonicity'
-              ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-purple-50 dark:bg-purple-500/15 border-purple-300 dark:border-purple-500/40 text-purple-700 dark:text-purple-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Activity className="w-4 h-4 text-purple-400 shrink-0" />
+          <Activity className="w-4 h-4 text-purple-600 dark:text-purple-400 shrink-0" />
           <span className="truncate">5. Chiều biến thiên</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('asymptotes_slope')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'asymptotes_slope'
-              ? 'bg-sky-500/15 border-sky-500/40 text-sky-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-sky-50 dark:bg-sky-500/15 border-sky-300 dark:border-sky-500/40 text-sky-700 dark:text-sky-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Split className="w-4 h-4 text-sky-400 shrink-0" />
+          <Split className="w-4 h-4 text-sky-600 dark:text-sky-400 shrink-0" />
           <span className="truncate">6. Độ dốc tiệm cận xiên</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('extrema_position')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'extrema_position'
-              ? 'bg-orange-500/15 border-orange-500/40 text-orange-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-orange-50 dark:bg-orange-500/15 border-orange-300 dark:border-orange-500/40 text-orange-700 dark:text-orange-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Crosshair className="w-4 h-4 text-orange-400 shrink-0" />
+          <Crosshair className="w-4 h-4 text-orange-600 dark:text-orange-400 shrink-0" />
           <span className="truncate">7. Vị trí 2 cực trị vs Oy</span>
         </button>
 
         <button
           onClick={() => handleSwitchChallenge('symmetry_points')}
-          className={`p-2.5 rounded-lg text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
+          className={`p-2.5 rounded-xl text-xs font-semibold border flex items-center gap-2 transition-all cursor-pointer ${
             activeChallenge === 'symmetry_points'
-              ? 'bg-yellow-500/15 border-yellow-500/40 text-yellow-300 shadow-sm'
-              : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:text-slate-200'
+              ? 'bg-yellow-50 dark:bg-yellow-500/15 border-yellow-300 dark:border-yellow-500/40 text-yellow-700 dark:text-yellow-300 shadow-sm'
+              : 'bg-slate-50 dark:bg-slate-950/40 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-900/60'
           }`}
         >
-          <Layers className="w-4 h-4 text-yellow-400 shrink-0" />
+          <Layers className="w-4 h-4 text-yellow-600 dark:text-yellow-400 shrink-0" />
           <span className="truncate">8. Đối xứng cặp P &amp; P'</span>
         </button>
       </div>

@@ -23,6 +23,8 @@ export interface ExtremumPoint extends Point2D {
   type: 'max' | 'min';
   xExact: string;
   yExact: string;
+  xClean?: string;
+  yClean?: string;
 }
 
 export interface Asymptotes {

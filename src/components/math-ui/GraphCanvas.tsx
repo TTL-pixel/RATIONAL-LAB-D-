@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react'
 import { RationalAnalysisResult, DisplayLayers } from '../../types/math';
 import { evaluateRational, evaluateDerivative } from '../../math/rationalFunction';
 import { formatDecimal } from '../../math/fraction';
+import { MathView } from './MathView';
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Grid, Eye, EyeOff, Brain, Sparkles } from 'lucide-react';
 
 interface GraphCanvasProps {
@@ -12,6 +13,7 @@ interface GraphCanvasProps {
   probeX?: number;
   onProbeXChange?: (x: number) => void;
   showSymmetryProbe?: boolean;
+  onNavigateToGraphTab?: () => void;
 }
 
 export const GraphCanvas: React.FC<GraphCanvasProps> = ({
@@ -22,6 +24,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
   probeX,
   onProbeXChange,
   showSymmetryProbe = true,
+  onNavigateToGraphTab,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 750, height: 520 });
@@ -324,6 +327,17 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
             <Grid className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Lưới</span>
           </button>
+
+          {onNavigateToGraphTab && (
+            <button
+              onClick={onNavigateToGraphTab}
+              title="Phóng to toàn màn hình - Chuyển sang chế độ xem đồ thị toàn cảnh"
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 text-blue-700 dark:text-cyan-300 border border-blue-200 dark:border-blue-900/60 transition-colors flex items-center gap-1.5 cursor-pointer font-semibold shadow-xs"
+            >
+              <Maximize2 className="w-3.5 h-3.5 text-blue-600 dark:text-cyan-400" />
+              <span className="hidden sm:inline">Xem toàn cảnh</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -722,9 +736,9 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
                     setActiveTooltip({
                       x: toScreenX(analysis.symmetryCenter.x),
                       y: toScreenY(analysis.symmetryCenter.y),
-                      title: 'Tâm đối xứng I',
-                      subtitle: `I(${analysis.symmetryCenter.exactX}; ${analysis.symmetryCenter.exactY})`,
-                      value: 'Giao điểm 2 đường tiệm cận đứng và tiệm cận xiên',
+                      title: 'Tâm đối xứng I (Giao 2 tiệm cận)',
+                      subtitle: `I\\left(${analysis.symmetryCenter.exactX};\\, ${analysis.symmetryCenter.exactY}\\right) \\approx (${formatDecimal(analysis.symmetryCenter.x, 2)};\\, ${formatDecimal(analysis.symmetryCenter.y, 2)})`,
+                      value: 'Giao điểm của tiệm cận đứng và tiệm cận xiên',
                     })
                   }
                   onMouseLeave={() => setActiveTooltip(null)}
@@ -757,7 +771,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
                     paintOrder="stroke fill"
                     className="dark:fill-pink-400 font-mono text-white dark:text-[#060b14]"
                   >
-                    I({analysis.symmetryCenter.exactX}; {analysis.symmetryCenter.exactY})
+                    I({formatDecimal(analysis.symmetryCenter.x, 1)}; {formatDecimal(analysis.symmetryCenter.y, 1)})
                   </text>
                 </g>
               )}
@@ -781,8 +795,8 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
                           x: sx,
                           y: sy,
                           title: isMax ? 'Điểm Cực đại (MAX)' : 'Điểm Cực tiểu (MIN)',
-                          subtitle: `${isMax ? 'CĐ' : 'CT'}(${formatDecimal(pt.x, 2)}; ${formatDecimal(pt.y, 2)})`,
-                          value: `y'(${formatDecimal(pt.x, 2)}) = 0`,
+                          subtitle: `${isMax ? 'CĐ' : 'CT'}\\left(${pt.xExact};\\, ${pt.yExact}\\right) \\approx (${formatDecimal(pt.x, 2)};\\, ${formatDecimal(pt.y, 2)})`,
+                          value: `Hệ số góc tiếp tuyến y'(${formatDecimal(pt.x, 2)}) = 0`,
                         })
                       }
                       onMouseLeave={() => setActiveTooltip(null)}
@@ -848,7 +862,7 @@ export const GraphCanvas: React.FC<GraphCanvasProps> = ({
             </div>
             {activeTooltip.subtitle && (
               <div className="font-mono font-semibold text-white text-xs">
-                {activeTooltip.subtitle}
+                <MathView math={activeTooltip.subtitle} />
               </div>
             )}
             {activeTooltip.value && (

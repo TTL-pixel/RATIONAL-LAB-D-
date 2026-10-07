@@ -1,13 +1,36 @@
 import React from 'react';
 import { RationalAnalysisResult } from '../../types/math';
 import { MathView } from './MathView';
-import { Table, Sparkles } from 'lucide-react';
+import { Table } from 'lucide-react';
 
 interface VariationTableProps {
   analysis: RationalAnalysisResult;
+  compact?: boolean;
 }
 
-export const VariationTable: React.FC<VariationTableProps> = ({ analysis }) => {
+// Helper to format clean text for SVG rendering from latex/string
+function cleanForSvg(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/\\frac\{([^{}]+)\}\{([^{}]+)\}/g, (_m, num, den) => {
+      const cNum = cleanForSvg(num);
+      const cDen = cleanForSvg(den);
+      if (cDen === '1') return cNum;
+      if (cNum.includes('+') || cNum.includes('-')) {
+        return `(${cNum})/${cDen}`;
+      }
+      return `${cNum}/${cDen}`;
+    })
+    .replace(/\\sqrt\{([^{}]+)\}/g, '√$1')
+    .replace(/\\pm/g, '±')
+    .replace(/\\infty/g, '∞')
+    .replace(/\\left|\\right/g, '')
+    .replace(/[{}\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+export const VariationTable: React.FC<VariationTableProps> = ({ analysis, compact = false }) => {
   if (!analysis.isValid) {
     return (
       <div className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center text-slate-500 dark:text-slate-400 text-sm shadow-sm">
@@ -16,284 +39,371 @@ export const VariationTable: React.FC<VariationTableProps> = ({ analysis }) => {
     );
   }
 
-  const { derivative, extrema, hasExtrema, limits, excludedPointExact } = analysis;
+  const { derivative, extrema, hasExtrema, excludedPointExact } = analysis;
   const A = derivative.A;
   const isAPositive = A > 0;
 
-  // Render Table based on whether there are 2 extrema or no extrema
+  // CASE 1: 2 EXTREMA (Delta > 0)
   if (hasExtrema && extrema.length >= 2) {
     const r1 = extrema[0];
     const r2 = extrema[1];
 
-    const sign1 = isAPositive ? '+' : '-';
-    const sign4 = isAPositive ? '+' : '-';
+    const x1Clean = r1.xClean || cleanForSvg(r1.xExact);
+    const x0Clean = cleanForSvg(excludedPointExact);
+    const x2Clean = r2.xClean || cleanForSvg(r2.xExact);
+
+    const y1Clean = r1.yClean || cleanForSvg(r1.yExact);
+    const y2Clean = r2.yClean || cleanForSvg(r2.yExact);
+
+    // When A > 0:
+    // interval 1 (-inf, x1): y' is +, arrow 1 goes UP to y1 (CĐ)
+    // interval 2 (x1, x0): y' is -, arrow 2 goes DOWN to -inf
+    // x0: ||
+    // interval 3 (x0, x2): y' is -, arrow 3 goes DOWN from +inf to y2 (CT)
+    // interval 4 (x2, +inf): y' is +, arrow 4 goes UP from y2 (CT) to +inf
+    //
+    // When A < 0:
+    // interval 1 (-inf, x1): y' is -, arrow 1 goes DOWN to y1 (CT)
+    // interval 2 (x1, x0): y' is +, arrow 2 goes UP to +inf
+    // x0: ||
+    // interval 3 (x0, x2): y' is +, arrow 3 goes UP from -inf to y2 (CĐ)
+    // interval 4 (x2, +inf): y' is -, arrow 4 goes DOWN from y2 (CĐ) to -inf
 
     return (
-      <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 transition-colors">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-          <div className="flex items-center gap-2">
-            <Table className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              BẢNG BIẾN THIÊN
-            </h3>
+      <div className={`w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl ${compact ? 'p-3 sm:p-4' : 'p-5 sm:p-6'} shadow-md space-y-4 transition-colors`}>
+        {!compact && (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+            <div className="flex items-center gap-2">
+              <Table className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+              <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                BẢNG BIẾN THIÊN CHUẨN SGK (GIẢI TÍCH 12)
+              </h3>
+            </div>
+            <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {isAPositive ? 'Hệ số A > 0 (Cực đại trước, cực tiểu sau)' : 'Hệ số A < 0 (Cực tiểu trước, cực đại sau)'}
+            </div>
           </div>
-          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            {isAPositive ? 'Hệ số A > 0 (Cực đại trước, cực tiểu sau)' : 'Hệ số A < 0 (Cực tiểu trước, cực đại sau)'}
-          </div>
-        </div>
+        )}
 
+        {/* SVG Standard Textbook Variation Table */}
         <div className="overflow-x-auto pb-1">
-          <div className="min-w-[700px] bg-slate-50/50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 rounded-xl overflow-hidden">
-            {/* Header Row: x */}
-            <div className="grid grid-cols-12 border-b border-slate-200 dark:border-slate-700 text-center text-sm font-serif">
-              <div className="col-span-2 py-2 px-3 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+          <div className="min-w-[680px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700/80 rounded-xl overflow-hidden p-2">
+            <svg viewBox="0 0 720 220" className="w-full h-auto select-none font-serif block">
+              <defs>
+                <marker
+                  id="arr-green-ext"
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
+                </marker>
+                <marker
+                  id="arr-red-ext"
+                  viewBox="0 0 10 10"
+                  refX="6"
+                  refY="5"
+                  markerWidth="6"
+                  markerHeight="6"
+                  orient="auto-start-reverse"
+                >
+                  <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e" />
+                </marker>
+              </defs>
+
+              {/* Table Horizontal Rule Lines */}
+              {/* Top border */}
+              <line x1="10" y1="8" x2="710" y2="8" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+              {/* Line below x row */}
+              <line x1="10" y1="46" x2="710" y2="46" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+              {/* Line below y' row */}
+              <line x1="10" y1="88" x2="710" y2="88" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+              {/* Bottom border */}
+              <line x1="10" y1="214" x2="710" y2="214" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+
+              {/* Table Left Vertical Rule Line separating Header Labels from Data */}
+              <line x1="82" y1="8" x2="82" y2="214" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+
+              {/* HEADER LABELS (Left Column) */}
+              <text x="46" y="32" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
                 x
-              </div>
-              <div className="col-span-2 py-2 px-1 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-                <MathView math="-\infty" />
-              </div>
-              <div className="col-span-2 py-2 px-1 font-bold text-blue-600 dark:text-cyan-300 flex items-center justify-center">
-                <MathView math={r1.xExact} />
-              </div>
-              <div className="col-span-2 py-2 px-1 font-bold text-rose-500 dark:text-rose-400 border-x-2 border-double border-rose-400/80 dark:border-rose-500/80 bg-rose-500/5 flex items-center justify-center">
-                <MathView math={excludedPointExact} />
-              </div>
-              <div className="col-span-2 py-2 px-1 font-bold text-blue-600 dark:text-cyan-300 flex items-center justify-center">
-                <MathView math={r2.xExact} />
-              </div>
-              <div className="col-span-2 py-2 px-1 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-                <MathView math="+\infty" />
-              </div>
-            </div>
-
-            {/* Row 2: y' */}
-            <div className="grid grid-cols-12 border-b border-slate-200 dark:border-slate-700 text-center text-sm font-serif items-center">
-              <div className="col-span-2 py-2 px-3 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+              </text>
+              <text x="46" y="72" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
                 y'
-              </div>
-              <div className={`col-span-2 py-2 font-bold text-base ${isAPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {sign1}
-              </div>
-              <div className="col-span-2 py-2 font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center">
-                0
-              </div>
-              <div className="col-span-2 py-2 font-mono font-bold text-rose-500 dark:text-rose-400 border-x-2 border-double border-rose-400/80 dark:border-rose-500/80 bg-rose-500/5 flex items-center justify-center tracking-widest">
-                ||
-              </div>
-              <div className="col-span-2 py-2 font-bold text-slate-600 dark:text-slate-400 flex items-center justify-center">
-                0
-              </div>
-              <div className={`col-span-2 py-2 font-bold text-base ${isAPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                {sign4}
-              </div>
-            </div>
-
-            {/* Row 3: y - SVG Variation Canvas */}
-            <div className="flex border-b border-slate-200 dark:border-slate-700">
-              <div className="w-[16.666%] shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+              </text>
+              <text x="46" y="155" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
                 y
-              </div>
-              <div className="w-[83.334%] relative bg-white/50 dark:bg-slate-950/40">
-                <svg viewBox="0 0 600 140" className="w-full h-36 select-none font-serif">
-                  <defs>
-                    <marker
-                      id="arrow-green"
-                      viewBox="0 0 10 10"
-                      refX="6"
-                      refY="5"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto-start-reverse"
-                    >
-                      <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
-                    </marker>
-                    <marker
-                      id="arrow-red"
-                      viewBox="0 0 10 10"
-                      refX="6"
-                      refY="5"
-                      markerWidth="6"
-                      markerHeight="6"
-                      orient="auto-start-reverse"
-                    >
-                      <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e" />
-                    </marker>
-                  </defs>
+              </text>
 
-                  {/* Double vertical line at x = 300 (asymptote) */}
-                  <line x1="298" y1="0" x2="298" y2="140" stroke="#f43f5e" strokeWidth="1.5" strokeOpacity="0.8" />
-                  <line x1="302" y1="0" x2="302" y2="140" stroke="#f43f5e" strokeWidth="1.5" strokeOpacity="0.8" />
+              {/* ROW 1: x values */}
+              {/* -inf at x = 115 */}
+              <text x="115" y="31" fontSize="14" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400">
+                -∞
+              </text>
+              {/* x1 at x = 245 */}
+              <foreignObject x="175" y="8" width="140" height="34" className="overflow-visible pointer-events-none">
+                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-blue-600 dark:text-cyan-400">
+                  <MathView math={r1.xExact} />
+                </div>
+              </foreignObject>
+              {/* x0 (asymptote) at x = 390 */}
+              <foreignObject x="320" y="8" width="140" height="34" className="overflow-visible pointer-events-none">
+                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-rose-500 dark:text-rose-400">
+                  <MathView math={excludedPointExact} />
+                </div>
+              </foreignObject>
+              {/* x2 at x = 535 */}
+              <foreignObject x="465" y="8" width="140" height="34" className="overflow-visible pointer-events-none">
+                <div className="w-full h-full flex items-center justify-center text-xs font-bold text-blue-600 dark:text-cyan-400">
+                  <MathView math={r2.xExact} />
+                </div>
+              </foreignObject>
+              {/* +inf at x = 675 */}
+              <text x="675" y="31" fontSize="14" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400">
+                +∞
+              </text>
 
-                  {isAPositive ? (
-                    <>
-                      {/* Left Branch: A > 0 */}
-                      <text x="35" y="125" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">
-                        -∞
-                      </text>
-                      <line
-                        x1="55"
-                        y1="115"
-                        x2="130"
-                        y2="42"
-                        stroke="#10b981"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-green)"
-                      />
+              {/* ASYMPTOTE DOUBLE VERTICAL LINE (runs through y' and y rows at x0 = 390) */}
+              <line x1="388" y1="46" x2="388" y2="214" stroke="#f43f5e" strokeWidth="1.5" />
+              <line x1="392" y1="46" x2="392" y2="214" stroke="#f43f5e" strokeWidth="1.5" />
 
-                      {/* Local Maximum at x = 150 */}
-                      <g>
-                        <rect x="105" y="10" width="90" height="25" rx="6" className="fill-white dark:fill-slate-900 stroke-amber-500" strokeWidth="1.4" />
-                        <text x="150" y="22" fill="#d97706" className="dark:fill-amber-400" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
-                          CĐ: y₁
-                        </text>
-                        <text x="150" y="32" fill="#b45309" className="dark:fill-amber-300" fontSize="9.5" textAnchor="middle" fontFamily="monospace">
-                          {r1.yExact.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/, '$1/$2')}
-                        </text>
-                      </g>
+              {/* ROW 2: y' (f'(x)) signs & zeros */}
+              {isAPositive ? (
+                <>
+                  {/* Interval 1 (-inf, x1): y' is + (arrow 1 goes UP) */}
+                  <text x="175" y="73" fontSize="19" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                    +
+                  </text>
+                  {/* At x1: zero */}
+                  <text x="245" y="72" fontSize="14" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400 font-sans">
+                    0
+                  </text>
+                  {/* Interval 2 (x1, x0): y' is - (arrow 2 goes DOWN) */}
+                  <text x="315" y="73" fontSize="21" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                    -
+                  </text>
+                  {/* Interval 3 (x0, x2): y' is - (arrow 3 goes DOWN) */}
+                  <text x="465" y="73" fontSize="21" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                    -
+                  </text>
+                  {/* At x2: zero */}
+                  <text x="535" y="72" fontSize="14" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400 font-sans">
+                    0
+                  </text>
+                  {/* Interval 4 (x2, +inf): y' is + (arrow 4 goes UP) */}
+                  <text x="605" y="73" fontSize="19" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                    +
+                  </text>
+                </>
+              ) : (
+                <>
+                  {/* Interval 1 (-inf, x1): y' is - (arrow 1 goes DOWN) */}
+                  <text x="175" y="73" fontSize="21" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                    -
+                  </text>
+                  {/* At x1: zero */}
+                  <text x="245" y="72" fontSize="14" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400 font-sans">
+                    0
+                  </text>
+                  {/* Interval 2 (x1, x0): y' is + (arrow 2 goes UP) */}
+                  <text x="315" y="73" fontSize="19" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                    +
+                  </text>
+                  {/* Interval 3 (x0, x2): y' is + (arrow 3 goes UP) */}
+                  <text x="465" y="73" fontSize="19" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                    +
+                  </text>
+                  {/* At x2: zero */}
+                  <text x="535" y="72" fontSize="14" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400 font-sans">
+                    0
+                  </text>
+                  {/* Interval 4 (x2, +inf): y' is - (arrow 4 goes DOWN) */}
+                  <text x="605" y="73" fontSize="21" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                    -
+                  </text>
+                </>
+              )}
 
-                      {/* From max down to -inf at asymptote left */}
-                      <line
-                        x1="170"
-                        y1="42"
-                        x2="250"
-                        y2="115"
-                        stroke="#f43f5e"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-red)"
-                      />
-                      <text x="275" y="125" fill="#f43f5e" fontSize="13" textAnchor="middle">
-                        -∞
-                      </text>
+              {/* ROW 3: y (f(x)) ARROWS & BOUNDARY / EXTREMA VALUES */}
+              {isAPositive ? (
+                <>
+                  {/* --- LEFT BRANCH (A > 0) --- */}
+                  {/* 1. Value at start: -inf */}
+                  <text x="115" y="200" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">
+                    -∞
+                  </text>
 
-                      {/* Right Branch: A > 0 */}
-                      <text x="325" y="24" fill="#f43f5e" fontSize="13" textAnchor="middle">
-                        +∞
-                      </text>
-                      <line
-                        x1="345"
-                        y1="32"
-                        x2="425"
-                        y2="105"
-                        stroke="#f43f5e"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-red)"
-                      />
+                  {/* Arrow 1: UP from (-inf) to y1 (CĐ) under [+] */}
+                  <line
+                    x1="130"
+                    y1="190"
+                    x2="225"
+                    y2="120"
+                    stroke="#10b981"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-green-ext)"
+                  />
 
-                      {/* Local Minimum at x = 450 */}
-                      <g>
-                        <rect x="405" y="105" width="90" height="25" rx="6" className="fill-white dark:fill-slate-900 stroke-indigo-500" strokeWidth="1.4" />
-                        <text x="450" y="117" fill="#4f46e5" className="dark:fill-indigo-300" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
-                          CT: y₂
-                        </text>
-                        <text x="450" y="127" fill="#4338ca" className="dark:fill-indigo-200" fontSize="9.5" textAnchor="middle" fontFamily="monospace">
-                          {r2.yExact.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/, '$1/$2')}
-                        </text>
-                      </g>
+                  {/* Peak at x1: Cực Đại y1 */}
+                  <foreignObject x="175" y="94" width="140" height="28" className="overflow-visible pointer-events-none">
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-400">
+                      <span className="mr-1 text-[11px] font-sans">CĐ:</span>
+                      <MathView math={r1.yExact} />
+                    </div>
+                  </foreignObject>
 
-                      {/* From min up to +inf */}
-                      <line
-                        x1="470"
-                        y1="105"
-                        x2="545"
-                        y2="32"
-                        stroke="#10b981"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-green)"
-                      />
-                      <text x="565" y="24" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">
-                        +∞
-                      </text>
-                    </>
-                  ) : (
-                    <>
-                      {/* Left Branch: A < 0 */}
-                      <text x="35" y="24" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">
-                        +∞
-                      </text>
-                      <line
-                        x1="55"
-                        y1="32"
-                        x2="130"
-                        y2="105"
-                        stroke="#f43f5e"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-red)"
-                      />
+                  {/* Arrow 2: DOWN from y1 to (-inf) under [-] */}
+                  <line
+                    x1="265"
+                    y1="120"
+                    x2="360"
+                    y2="190"
+                    stroke="#f43f5e"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-red-ext)"
+                  />
 
-                      {/* Local Minimum at x = 150 */}
-                      <g>
-                        <rect x="105" y="105" width="90" height="25" rx="6" className="fill-white dark:fill-slate-900 stroke-indigo-500" strokeWidth="1.4" />
-                        <text x="150" y="117" fill="#4f46e5" className="dark:fill-indigo-300" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
-                          CT: y₁
-                        </text>
-                        <text x="150" y="127" fill="#4338ca" className="dark:fill-indigo-200" fontSize="9.5" textAnchor="middle" fontFamily="monospace">
-                          {r1.yExact.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/, '$1/$2')}
-                        </text>
-                      </g>
+                  {/* Value at end of left branch: -inf */}
+                  <text x="370" y="200" fontSize="13" textAnchor="middle" fill="#f43f5e">
+                    -∞
+                  </text>
 
-                      {/* From min up to +inf at asymptote left */}
-                      <line
-                        x1="170"
-                        y1="105"
-                        x2="250"
-                        y2="32"
-                        stroke="#10b981"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-green)"
-                      />
-                      <text x="275" y="24" fill="#f43f5e" fontSize="13" textAnchor="middle">
-                        +∞
-                      </text>
+                  {/* --- RIGHT BRANCH (A > 0) --- */}
+                  {/* Value at start of right branch: +inf */}
+                  <text x="410" y="112" fontSize="13" textAnchor="middle" fill="#f43f5e">
+                    +∞
+                  </text>
 
-                      {/* Right Branch: A < 0 */}
-                      <text x="325" y="125" fill="#f43f5e" fontSize="13" textAnchor="middle">
-                        -∞
-                      </text>
-                      <line
-                        x1="345"
-                        y1="115"
-                        x2="425"
-                        y2="42"
-                        stroke="#10b981"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-green)"
-                      />
+                  {/* Arrow 3: DOWN from (+inf) to y2 (CT) under [-] */}
+                  <line
+                    x1="425"
+                    y1="120"
+                    x2="515"
+                    y2="190"
+                    stroke="#f43f5e"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-red-ext)"
+                  />
 
-                      {/* Local Maximum at x = 450 */}
-                      <g>
-                        <rect x="405" y="10" width="90" height="25" rx="6" className="fill-white dark:fill-slate-900 stroke-amber-500" strokeWidth="1.4" />
-                        <text x="450" y="22" fill="#d97706" className="dark:fill-amber-400" fontSize="10" fontWeight="bold" textAnchor="middle" fontFamily="sans-serif">
-                          CĐ: y₂
-                        </text>
-                        <text x="450" y="32" fill="#b45309" className="dark:fill-amber-300" fontSize="9.5" textAnchor="middle" fontFamily="monospace">
-                          {r2.yExact.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/, '$1/$2')}
-                        </text>
-                      </g>
+                  {/* Valley at x2: Cực Tiểu y2 */}
+                  <foreignObject x="465" y="190" width="140" height="28" className="overflow-visible pointer-events-none">
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                      <span className="mr-1 text-[11px] font-sans">CT:</span>
+                      <MathView math={r2.yExact} />
+                    </div>
+                  </foreignObject>
 
-                      {/* From max down to -inf */}
-                      <line
-                        x1="470"
-                        y1="42"
-                        x2="545"
-                        y2="115"
-                        stroke="#f43f5e"
-                        strokeWidth="2.2"
-                        markerEnd="url(#arrow-red)"
-                      />
-                      <text x="565" y="125" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">
-                        -∞
-                      </text>
-                    </>
-                  )}
-                </svg>
-              </div>
-            </div>
+                  {/* Arrow 4: UP from y2 to (+inf) under [+] */}
+                  <line
+                    x1="555"
+                    y1="190"
+                    x2="650"
+                    y2="120"
+                    stroke="#10b981"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-green-ext)"
+                  />
+
+                  {/* Value at end of right branch: +inf */}
+                  <text x="675" y="112" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">
+                    +∞
+                  </text>
+                </>
+              ) : (
+                <>
+                  {/* --- LEFT BRANCH (A < 0) --- */}
+                  {/* 1. Value at start: +inf */}
+                  <text x="115" y="112" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">
+                    +∞
+                  </text>
+
+                  {/* Arrow 1: DOWN from (+inf) to y1 (CT) under [-] */}
+                  <line
+                    x1="130"
+                    y1="120"
+                    x2="225"
+                    y2="190"
+                    stroke="#f43f5e"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-red-ext)"
+                  />
+
+                  {/* Valley at x1: Cực Tiểu y1 */}
+                  <foreignObject x="175" y="190" width="140" height="28" className="overflow-visible pointer-events-none">
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-indigo-700 dark:text-indigo-300">
+                      <span className="mr-1 text-[11px] font-sans">CT:</span>
+                      <MathView math={r1.yExact} />
+                    </div>
+                  </foreignObject>
+
+                  {/* Arrow 2: UP from y1 to (+inf) under [+] */}
+                  <line
+                    x1="265"
+                    y1="190"
+                    x2="360"
+                    y2="120"
+                    stroke="#10b981"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-green-ext)"
+                  />
+
+                  {/* Value at end of left branch: +inf */}
+                  <text x="370" y="112" fontSize="13" textAnchor="middle" fill="#10b981">
+                    +∞
+                  </text>
+
+                  {/* --- RIGHT BRANCH (A < 0) --- */}
+                  {/* Value at start of right branch: -inf */}
+                  <text x="410" y="200" fontSize="13" textAnchor="middle" fill="#f43f5e">
+                    -∞
+                  </text>
+
+                  {/* Arrow 3: UP from (-inf) to y2 (CĐ) under [+] */}
+                  <line
+                    x1="425"
+                    y1="190"
+                    x2="515"
+                    y2="120"
+                    stroke="#10b981"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-green-ext)"
+                  />
+
+                  {/* Peak at x2: Cực Đại y2 */}
+                  <foreignObject x="465" y="94" width="140" height="28" className="overflow-visible pointer-events-none">
+                    <div className="w-full h-full flex items-center justify-center text-xs font-bold text-amber-700 dark:text-amber-400">
+                      <span className="mr-1 text-[11px] font-sans">CĐ:</span>
+                      <MathView math={r2.yExact} />
+                    </div>
+                  </foreignObject>
+
+                  {/* Arrow 4: DOWN from y2 to (-inf) under [-] */}
+                  <line
+                    x1="555"
+                    y1="120"
+                    x2="650"
+                    y2="190"
+                    stroke="#f43f5e"
+                    strokeWidth="2.2"
+                    markerEnd="url(#arr-red-ext)"
+                  />
+
+                  {/* Value at end of right branch: -inf */}
+                  <text x="675" y="200" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">
+                    -∞
+                  </text>
+                </>
+              )}
+            </svg>
           </div>
         </div>
 
         {/* Extrema Summary Cards underneath the table */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 text-xs">
-          <div className="p-3.5 bg-amber-50/50 dark:bg-slate-950/80 rounded-xl border border-amber-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
+          <div className="p-3 bg-amber-50/50 dark:bg-slate-950/80 rounded-xl border border-amber-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
             <div>
               <div className="font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-0.5">
                 {isAPositive ? 'Điểm Cực Đại' : 'Điểm Cực Tiểu'} (x₁)
@@ -310,7 +420,7 @@ export const VariationTable: React.FC<VariationTableProps> = ({ analysis }) => {
             </div>
           </div>
 
-          <div className="p-3.5 bg-indigo-50/50 dark:bg-slate-950/80 rounded-xl border border-indigo-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
+          <div className="p-3 bg-indigo-50/50 dark:bg-slate-950/80 rounded-xl border border-indigo-200 dark:border-slate-800 flex items-center justify-between shadow-xs">
             <div>
               <div className="font-bold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider mb-0.5">
                 {isAPositive ? 'Điểm Cực Tiểu' : 'Điểm Cực Đại'} (x₂)
@@ -333,159 +443,144 @@ export const VariationTable: React.FC<VariationTableProps> = ({ analysis }) => {
             <span className="text-rose-500 dark:text-rose-400 font-bold font-mono">|| :</span> Điểm gián đoạn (tiệm cận đứng <MathView math={`x = ${excludedPointExact}`} />)
           </div>
           <div>
-            <span className="text-emerald-600 dark:text-emerald-400 font-bold">↗ :</span> Đồng biến &nbsp;·&nbsp; <span className="text-rose-600 dark:text-rose-400 font-bold">↘ :</span> Nghịch biến
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold">↗ (+) :</span> Đồng biến &nbsp;·&nbsp; <span className="text-rose-600 dark:text-rose-400 font-bold">↘ (-) :</span> Nghịch biến
           </div>
         </div>
       </div>
     );
   }
 
-  // Case with NO EXTREMA (Delta <= 0)
+  // CASE 2: NO EXTREMA (Delta <= 0)
   const isIncreasing = A > 0;
+  const x0Clean = cleanForSvg(excludedPointExact);
+
   return (
-    <div className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-md space-y-4 transition-colors">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
-        <div className="flex items-center gap-2">
-          <Table className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
-          <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-            BẢNG BIẾN THIÊN (Δ ≤ 0 · KHÔNG CÓ CỰC TRỊ)
-          </h3>
+    <div className={`w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl ${compact ? 'p-3 sm:p-4' : 'p-5 sm:p-6'} shadow-md space-y-4 transition-colors`}>
+      {!compact && (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800/80 pb-3">
+          <div className="flex items-center gap-2">
+            <Table className="w-4 h-4 text-blue-600 dark:text-cyan-400" />
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+              BẢNG BIẾN THIÊN (Δ ≤ 0 · KHÔNG CÓ CỰC TRỊ)
+            </h3>
+          </div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+            {isIncreasing ? 'Đạo hàm luôn dương y\' > 0' : 'Đạo hàm luôn âm y\' < 0'}
+          </div>
         </div>
-        <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-          {isIncreasing ? 'Đạo hàm luôn dương y\' > 0' : 'Đạo hàm luôn âm y\' < 0'}
-        </div>
-      </div>
+      )}
 
+      {/* SVG Standard Textbook Variation Table for No Extrema */}
       <div className="overflow-x-auto pb-1">
-        <div className="min-w-[600px] bg-slate-50/50 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-700/80 rounded-xl overflow-hidden">
-          {/* Row 1: x */}
-          <div className="grid grid-cols-12 border-b border-slate-200 dark:border-slate-700 text-center text-sm font-serif">
-            <div className="col-span-3 py-2 px-3 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+        <div className="min-w-[580px] bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700/80 rounded-xl overflow-hidden p-2">
+          <svg viewBox="0 0 600 200" className="w-full h-auto select-none font-serif block">
+            <defs>
+              <marker
+                id="arr-green-noext"
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
+              </marker>
+              <marker
+                id="arr-red-noext"
+                viewBox="0 0 10 10"
+                refX="6"
+                refY="5"
+                markerWidth="6"
+                markerHeight="6"
+                orient="auto-start-reverse"
+              >
+                <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e" />
+              </marker>
+            </defs>
+
+            {/* Table Horizontal Rule Lines */}
+            <line x1="10" y1="8" x2="590" y2="8" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+            <line x1="10" y1="46" x2="590" y2="46" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+            <line x1="10" y1="88" x2="590" y2="88" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+            <line x1="10" y1="194" x2="590" y2="194" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+
+            {/* Vertical Rule Line separating Header Labels */}
+            <line x1="82" y1="8" x2="82" y2="194" stroke="currentColor" strokeWidth="1.2" className="text-slate-300 dark:text-slate-700" />
+
+            {/* Header Labels */}
+            <text x="46" y="32" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
               x
-            </div>
-            <div className="col-span-3 py-2 px-2 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-              <MathView math="-\infty" />
-            </div>
-            <div className="col-span-3 py-2 px-2 font-bold text-rose-500 dark:text-rose-400 border-x-2 border-double border-rose-400/80 dark:border-rose-500/80 bg-rose-500/5 flex items-center justify-center">
-              <MathView math={excludedPointExact} />
-            </div>
-            <div className="col-span-3 py-2 px-2 text-slate-500 dark:text-slate-400 flex items-center justify-center">
-              <MathView math="+\infty" />
-            </div>
-          </div>
-
-          {/* Row 2: y' */}
-          <div className="grid grid-cols-12 border-b border-slate-200 dark:border-slate-700 text-center text-sm font-serif items-center">
-            <div className="col-span-3 py-2 px-3 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+            </text>
+            <text x="46" y="72" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
               y'
-            </div>
-            <div className={`col-span-3 py-2 font-bold text-base ${isIncreasing ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {isIncreasing ? '+' : '-'}
-            </div>
-            <div className="col-span-3 py-2 font-mono font-bold text-rose-500 dark:text-rose-400 border-x-2 border-double border-rose-400/80 dark:border-rose-500/80 bg-rose-500/5 flex items-center justify-center tracking-widest">
-              ||
-            </div>
-            <div className={`col-span-3 py-2 font-bold text-base ${isIncreasing ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {isIncreasing ? '+' : '-'}
-            </div>
-          </div>
-
-          {/* Row 3: y */}
-          <div className="flex border-b border-slate-200 dark:border-slate-700">
-            <div className="w-[25%] shrink-0 border-r border-slate-200 dark:border-slate-700 bg-slate-100/80 dark:bg-slate-900/90 font-sans font-bold text-slate-700 dark:text-slate-300 flex items-center justify-center">
+            </text>
+            <text x="46" y="145" fontSize="15" fontWeight="bold" textAnchor="middle" fill="currentColor" className="text-slate-800 dark:text-slate-200 font-serif">
               y
-            </div>
-            <div className="w-[75%] relative bg-white/50 dark:bg-slate-950/40">
-              <svg viewBox="0 0 500 130" className="w-full h-32 select-none font-serif">
-                <defs>
-                  <marker
-                    id="arrow-green-noext"
-                    viewBox="0 0 10 10"
-                    refX="6"
-                    refY="5"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M 0 1 L 9 5 L 0 9 z" fill="#10b981" />
-                  </marker>
-                  <marker
-                    id="arrow-red-noext"
-                    viewBox="0 0 10 10"
-                    refX="6"
-                    refY="5"
-                    markerWidth="6"
-                    markerHeight="6"
-                    orient="auto-start-reverse"
-                  >
-                    <path d="M 0 1 L 9 5 L 0 9 z" fill="#f43f5e" />
-                  </marker>
-                </defs>
+            </text>
 
-                {/* Double vertical line at x = 250 */}
-                <line x1="248" y1="0" x2="248" y2="130" stroke="#f43f5e" strokeWidth="1.5" strokeOpacity="0.8" />
-                <line x1="252" y1="0" x2="252" y2="130" stroke="#f43f5e" strokeWidth="1.5" strokeOpacity="0.8" />
+            {/* Row 1: x values */}
+            <text x="130" y="31" fontSize="14" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400">
+              -∞
+            </text>
+            {/* x0 at x = 336 */}
+            <foreignObject x={266} y={8} width={140} height={34} className="overflow-visible pointer-events-none">
+              <div className="w-full h-full flex items-center justify-center text-xs font-bold text-rose-500 dark:text-rose-400">
+                <MathView math={excludedPointExact} />
+              </div>
+            </foreignObject>
+            <text x="540" y="31" fontSize="14" textAnchor="middle" fill="currentColor" className="text-slate-600 dark:text-slate-400">
+              +∞
+            </text>
 
-                {isIncreasing ? (
-                  <>
-                    {/* Left Branch: -inf -> +inf */}
-                    <text x="35" y="115" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">-∞</text>
-                    <line
-                      x1="55"
-                      y1="105"
-                      x2="205"
-                      y2="30"
-                      stroke="#10b981"
-                      strokeWidth="2.2"
-                      markerEnd="url(#arrow-green-noext)"
-                    />
-                    <text x="225" y="24" fill="#f43f5e" fontSize="13" textAnchor="middle">+∞</text>
+            {/* Double vertical line at x0 = 336 */}
+            <line x1="334" y1="46" x2="334" y2="194" stroke="#f43f5e" strokeWidth="1.5" />
+            <line x1="338" y1="46" x2="338" y2="194" stroke="#f43f5e" strokeWidth="1.5" />
 
-                    {/* Right Branch: -inf -> +inf */}
-                    <text x="275" y="115" fill="#f43f5e" fontSize="13" textAnchor="middle">-∞</text>
-                    <line
-                      x1="295"
-                      y1="105"
-                      x2="445"
-                      y2="30"
-                      stroke="#10b981"
-                      strokeWidth="2.2"
-                      markerEnd="url(#arrow-green-noext)"
-                    />
-                    <text x="465" y="24" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">+∞</text>
-                  </>
-                ) : (
-                  <>
-                    {/* Left Branch: +inf -> -inf */}
-                    <text x="35" y="24" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">+∞</text>
-                    <line
-                      x1="55"
-                      y1="32"
-                      x2="205"
-                      y2="105"
-                      stroke="#f43f5e"
-                      strokeWidth="2.2"
-                      markerEnd="url(#arrow-red-noext)"
-                    />
-                    <text x="225" y="115" fill="#f43f5e" fontSize="13" textAnchor="middle">-∞</text>
+            {/* Row 2: y' signs */}
+            {isIncreasing ? (
+              <>
+                <text x="230" y="73" fontSize="20" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                  +
+                </text>
+                <text x="440" y="73" fontSize="20" fontWeight="bold" textAnchor="middle" fill="#10b981">
+                  +
+                </text>
+              </>
+            ) : (
+              <>
+                <text x="230" y="73" fontSize="22" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                  -
+                </text>
+                <text x="440" y="73" fontSize="22" fontWeight="bold" textAnchor="middle" fill="#f43f5e">
+                  -
+                </text>
+              </>
+            )}
 
-                    {/* Right Branch: +inf -> -inf */}
-                    <text x="275" y="24" fill="#f43f5e" fontSize="13" textAnchor="middle">+∞</text>
-                    <line
-                      x1="295"
-                      y1="32"
-                      x2="445"
-                      y2="105"
-                      stroke="#f43f5e"
-                      strokeWidth="2.2"
-                      markerEnd="url(#arrow-red-noext)"
-                    />
-                    <text x="465" y="115" fill="#64748b" className="dark:fill-slate-400" fontSize="13" textAnchor="middle">-∞</text>
-                  </>
-                )}
-              </svg>
-            </div>
-          </div>
+            {/* Row 3: y arrows */}
+            {isIncreasing ? (
+              <>
+                <text x="130" y="180" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">-∞</text>
+                <line x1="150" y1="170" x2="300" y2="110" stroke="#10b981" strokeWidth="2.2" markerEnd="url(#arr-green-noext)" />
+                <text x="315" y="112" fontSize="13" textAnchor="middle" fill="#f43f5e">+∞</text>
+
+                <text x="355" y="180" fontSize="13" textAnchor="middle" fill="#f43f5e">-∞</text>
+                <line x1="375" y1="170" x2="520" y2="110" stroke="#10b981" strokeWidth="2.2" markerEnd="url(#arr-green-noext)" />
+                <text x="540" y="112" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">+∞</text>
+              </>
+            ) : (
+              <>
+                <text x="130" y="112" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">+∞</text>
+                <line x1="150" y1="120" x2="300" y2="175" stroke="#f43f5e" strokeWidth="2.2" markerEnd="url(#arr-red-noext)" />
+                <text x="315" y="180" fontSize="13" textAnchor="middle" fill="#f43f5e">-∞</text>
+
+                <text x="355" y="112" fontSize="13" textAnchor="middle" fill="#f43f5e">+∞</text>
+                <line x1="375" y1="120" x2="520" y2="175" stroke="#f43f5e" strokeWidth="2.2" markerEnd="url(#arr-red-noext)" />
+                <text x="540" y="180" fontSize="13" textAnchor="middle" fill="currentColor" className="text-slate-500 dark:text-slate-400">-∞</text>
+              </>
+            )}
+          </svg>
         </div>
       </div>
 
